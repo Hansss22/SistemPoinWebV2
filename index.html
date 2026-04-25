@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Poin Pelanggaran (Web)</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <div class="container">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">SP</div>
+          <div>
+            <div class="title">Sistem Poin Pelanggaran</div>
+            <div class="subtitle">Versi Web (HTML/CSS/JS)</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span id="sessionUser" class="badge subtle hidden"></span>
+          <button id="btnLogout" class="btn ghost hidden" type="button">Keluar</button>
+        </div>
+      </header>
+
+      <!-- Auth -->
+      <main id="authView" class="card auth">
+        <div class="auth-grid">
+          <section>
+            <h2 class="h2">Masuk</h2>
+            <p class="muted">Akun demo: <b>guru</b>/<b>12345</b> • <b>murid</b>/<b>12345</b> • atau <b>admin</b>/<b>12345</b></p>
+            <form id="loginForm" class="form">
+              <label class="field">
+                <span>Username</span>
+                <input id="loginUsername" autocomplete="username" required />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input id="loginPassword" type="password" autocomplete="current-password" required />
+              </label>
+              <div id="loginError" class="alert hidden"></div>
+              <button class="btn primary" type="submit">Masuk</button>
+              <button id="toRegister" class="btn link" type="button">Belum punya akun? Daftar</button>
+            </form>
+          </section>
+
+          <div class="divider"></div>
+
+          <section>
+            <h2 class="h2">Daftar</h2>
+            <form id="registerForm" class="form hidden">
+              <label class="field">
+                <span>Username</span>
+                <input id="regUsername" autocomplete="username" required />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input id="regPassword" type="password" autocomplete="new-password" required />
+              </label>
+              <label class="field">
+                <span>Konfirmasi password</span>
+                <input id="regConfirm" type="password" autocomplete="new-password" required />
+              </label>
+              <div id="regError" class="alert hidden"></div>
+              <button class="btn primary" type="submit">Daftar</button>
+              <button id="toLogin" class="btn link" type="button">Sudah punya akun? Masuk</button>
+            </form>
+            <div id="registerHint" class="muted">
+              Klik <b>Belum punya akun? Daftar</b> untuk menampilkan form pendaftaran.
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <!-- App -->
+      <main id="appView" class="hidden">
+        <nav class="tabs" role="tablist" aria-label="Navigasi">
+          <button class="tab active" data-route="dashboard" type="button">Beranda</button>
+          <button class="tab" data-route="murid" type="button">Murid</button>
+          <button class="tab" data-route="catatan" type="button">Catatan</button>
+          <button class="tab" data-route="sanksi" type="button">Sanksi</button>
+        </nav>
+
+        <section class="panel">
+          <div id="routeTitle" class="panel-title">Beranda</div>
+          <div id="routeBody"></div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span class="muted">Data disimpan di <code>localStorage</code> (browser kamu).</span>
+      </footer>
+    </div>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
+
