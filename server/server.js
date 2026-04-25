@@ -13,8 +13,11 @@ const db = await openDb();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-// Serve the front-end (cobaWeb/)
-app.use(express.static(path.join(__dirname, "..")));
+// Serve the front-end
+app.use(express.static(path.join(__dirname, ".")));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 function badRequest(res, message, details) {
   return res.status(400).json({ ok: false, message, details });
