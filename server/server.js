@@ -140,11 +140,26 @@ app.post("/api/students", (req, res) => {
 });
 
 app.delete("/api/students/:id", (req, res) => {
-  if (!requireTeacher(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const id = ensureInt(req.params.id);
   if (id == null) return badRequest(res, "ID tidak valid");
   db.run("DELETE FROM students WHERE id = ?", [id]);
   return ok(res);
+});
+
+app.put("/api/students/:id", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const id = ensureInt(req.params.id);
+  if (id == null) return badRequest(res, "ID tidak valid");
+  const name = String(req.body?.name || "").trim();
+  const kelas = String(req.body?.kelas || "").trim();
+  if (!name || !kelas) return badRequest(res, "Nama dan kelas wajib diisi");
+
+  const existing = db.get("SELECT id FROM students WHERE id = ?", [id]);
+  if (!existing) return badRequest(res, "Murid tidak ditemukan");
+
+  db.run("UPDATE students SET name = ?, kelas = ? WHERE id = ?", [name, kelas, id]);
+  return ok(res, { student: { id, name, kelas } });
 });
 
 // ---------- Violations ----------

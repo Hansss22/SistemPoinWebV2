@@ -80,8 +80,9 @@ const API = {
   login: (username, password) => API.request("POST", "/api/login", { username, password }),
   register: (username, password) => API.request("POST", "/api/register", { username, password }),
   // data
-  listStudents: async () => (await API.request("GET", "/api/students")).students,
+listStudents: async () => (await API.request("GET", "/api/students")).students,
   createStudent: async (name, kelas) => (await API.request("POST", "/api/students", { name, kelas })).student,
+  updateStudent: async (id, name, kelas) => API.request("PUT", `/api/students/${id}`, { name, kelas }),
   deleteStudent: async (id) => API.request("DELETE", `/api/students/${id}`),
 
   listViolations: async () => (await API.request("GET", "/api/violations")).violations,
@@ -440,7 +441,7 @@ formRow = el("div", { class: "row" }, [
     ]);
   }
 
-  // Student list table (for both admin and teacher)
+// Student list table (for both admin and teacher)
   const table = students.length
     ? el("table", {}, [
         el("thead", {}, [
@@ -454,32 +455,64 @@ formRow = el("div", { class: "row" }, [
             const sanction = getSanctionForPoints(pts);
             const counts = countsByStatusForStudent(s.id);
             const status = effectiveStatusForStudent(s.id);
-            const del = el(
-              "button",
-              {
-                class: "btn sm danger",
-                type: "button",
-                onclick: async () => {
-                  if (!confirm(`Hapus murid "${s.name}"?`)) return;
-                  await API.deleteStudent(s.id);
-                  await loadAll();
-                  rerender();
-                },
-              },
-              ["Hapus"]
-            );
+
+            // Delete button only for admin
+            const del = isAdmin()
+              ? el(
+                  "button",
+                  {
+                    class: "btn sm danger",
+                    type: "button",
+                    onclick: async () => {
+                      if (!confirm(`Hapus murid "${s.name}"?`)) return;
+                      await API.deleteStudent(s.id);
+                      await loadAll();
+                      rerender();
+                    },
+                  },
+                  ["Hapus"]
+                )
+              : null;
+
+            // Edit button only for admin
+            const editBtn = isAdmin()
+              ? el(
+                  "button",
+                  {
+                    class: "btn sm",
+                    type: "button",
+                    onclick: async () => {
+                      const newName = prompt("Nama baru:", s.name);
+                      if (newName == null) return;
+                      const newKelas = prompt("Kelas baru:", s.kelas);
+                      if (newKelas == null) return;
+                      if (!newName.trim() || !newKelas.trim()) {
+                        alert("Nama dan kelas wajib diisi");
+                        return;
+                      }
+                      await API.updateStudent(s.id, newName.trim(), newKelas.trim());
+                      await loadAll();
+                      rerender();
+                    },
+                  },
+                  ["Ubah"]
+                )
+              : null;
+
             const statusBadges = el("div", { class: "row" }, [
               counts.pending ? pill(`P:${counts.pending}`, "blue") : null,
               counts.applied ? pill(`A:${counts.applied}`, "green") : null,
               counts.reviewed ? pill(`R:${counts.reviewed}`, "grey") : null,
             ]);
+
+            const actions = [editBtn, del].filter(Boolean);
             return el("tr", {}, [
               el("td", {}, [el("div", { style: "font-weight:900" }, [s.name]), el("div", { class: "muted" }, [`ID: ${s.id}`])]),
               el("td", {}, [s.kelas]),
               el("td", {}, [String(pts)]),
               el("td", {}, [sanction ? levelPill(sanction.tingkat) : pill("-", "grey")]),
               el("td", {}, [status ? statusPill(status) : pill("-", "grey"), el("div", { style: "margin-top:6px" }, [statusBadges])]),
-              el("td", {}, [del]),
+              el("td", {}, actions),
             ]);
           }),
         ),
