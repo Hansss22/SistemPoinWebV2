@@ -136,6 +136,9 @@ function clearSession() {
 function isTeacher() {
   return getSession()?.role === Roles.teacher;
 }
+function isAdmin() {
+  return getSession()?.username === "admin";
+}
 function isStudent() {
   return getSession()?.role === Roles.student;
 }
@@ -666,7 +669,7 @@ function renderSanksi() {
     rerender();
   }
 
-  const addBtn = el("button", { class: "btn ok", type: "button", onclick: () => openForm(null) }, ["Tambah Sanksi"]);
+  const addBtn = isAdmin() ? el("button", { class: "btn ok", type: "button", onclick: () => openForm(null) }, ["Tambah Sanksi"]) : null;
 
   const list = el(
     "div",
@@ -685,8 +688,8 @@ function renderSanksi() {
 
       const desc = el("div", { class: "muted", style: "margin-top:6px" }, [`Poin: ${s.minPoin} - ${s.maxPoin} • ${s.keterangan}`]);
 
-      const editBtn = el("button", { class: "btn sm", type: "button", onclick: () => openForm(s) }, ["Ubah"]);
-      const delBtn = el(
+      const editBtn = isAdmin() ? el("button", { class: "btn sm", type: "button", onclick: () => openForm(s) }, ["Ubah"]) : null;
+      const delBtn = isAdmin() ? el(
         "button",
         {
           class: "btn sm danger",
@@ -699,9 +702,9 @@ function renderSanksi() {
           },
         },
         ["Hapus"]
-      );
+      ) : null;
 
-      const studentsTable =
+      const actionsRow = (editBtn || delBtn) ? el("div", { class: "row", style: "margin-top:10px" }, [editBtn, delBtn].filter(Boolean)) : null;
         matched.length === 0
           ? el("div", { class: "muted", style: "margin-top:10px" }, ["- Tidak ada murid pada rentang ini -"])
           : el("table", { style: "margin-top:10px" }, [
@@ -717,11 +720,13 @@ function renderSanksi() {
                   const current = rec?.status || Status.pending;
 
                   const sel = el("select", {
-                    onchange: async () => {
-                      await API.setRecord(s.id, st.id, sel.value);
-                      await loadAll();
-                      rerender();
-                    },
+                    ...(isAdmin() ? {
+                      onchange: async () => {
+                        await API.setRecord(s.id, st.id, sel.value);
+                        await loadAll();
+                        rerender();
+                      },
+                    } : { disabled: "disabled" }),
                   });
                   [Status.pending, Status.applied, Status.reviewed].forEach((v) => {
                     sel.appendChild(el("option", { value: v, ...(v === current ? { selected: "selected" } : {}) }, [v]));
@@ -735,7 +740,7 @@ function renderSanksi() {
       return el("div", { class: "kpi", style: "margin-bottom:12px" }, [
         header,
         desc,
-        el("div", { class: "row", style: "margin-top:10px" }, [editBtn, delBtn]),
+        actionsRow,
         el("div", { class: "hr" }),
         el("div", { style: "font-weight:900; margin-bottom:6px" }, ["Murid terpengaruh"]),
         studentsTable,
@@ -743,13 +748,15 @@ function renderSanksi() {
     }),
   );
 
-  return el("div", {}, [el("div", { class: "row" }, [el("div", { style: "font-weight:900" }, ["Kelola Sanksi"]), el("div", { class: "spacer" }), addBtn]), el("div", { class: "hr" }), sanctions.length ? list : el("div", { class: "muted" }, ["Belum ada sanksi"])]);
+  const headerRow = el("div", { class: "row" }, [el("div", { style: "font-weight:900" }, ["Kelola Sanksi"]), el("div", { class: "spacer" }), ...(addBtn ? [addBtn] : [])]);
+
+  return el("div", {}, [headerRow, el("div", { class: "hr" }), sanctions.length ? list : el("div", { class: "muted" }, ["Belum ada sanksi"])]);
 }
 
 // -------------------- routing --------------------
 function getRoute() {
   const h = (location.hash || "#dashboard").replace("#", "").trim();
-  const allowed = isTeacher() ? new Set(["dashboard", "murid", "catatan"]) : new Set(["dashboard", "catatan", "sanksi"]);
+  const allowed = isTeacher() ? new Set(["dashboard", "murid", "catatan", "sanksi"]) : new Set(["dashboard", "catatan", "sanksi"]);
   return allowed.has(h) ? h : "dashboard";
 }
 
