@@ -403,39 +403,44 @@ function renderMurid() {
   if (!isTeacher()) return el("div", { class: "muted" }, ["Akses ditolak. Halaman ini hanya untuk guru."]);
   const students = getStudents();
 
-  const nameInput = el("input", { placeholder: "Nama murid" });
-  const kelasInput = el("input", { placeholder: "Kelas" });
-
-  const addBtn = el(
-    "button",
-    {
-      class: "btn ok",
-      type: "button",
-      onclick: async () => {
-        const name = nameInput.value.trim();
-        const kelas = kelasInput.value.trim();
-        if (!name || !kelas) return;
-        await API.createStudent(name, kelas);
-        await loadAll();
-        nameInput.value = "";
-        kelasInput.value = "";
-        rerender();
-      },
-    },
-    ["Tambah"]
-  );
-
+  // Jika bukan admin, nurtyboard hanya bisa lihat daftar murid
   const header = el("div", { class: "row" }, [
-    el("div", { style: "font-weight:900" }, ["Tambah Murid"]),
+    el("div", { style: "font-weight:900" }, ["Daftar Murid"]),
     el("div", { class: "spacer" }),
   ]);
 
-  const formRow = el("div", { class: "row" }, [
-    el("div", { style: "flex:1; min-width:220px" }, [nameInput]),
-    el("div", { style: "flex:1; min-width:160px" }, [kelasInput]),
-    addBtn,
-  ]);
+  let formRow = null;
+  if (isAdmin()) {
+    const nameInput = el("input", { placeholder: "Nama murid" });
+    const kelasInput = el("input", { placeholder: "Kelas" });
 
+    const addBtn = el(
+      "button",
+      {
+        class: "btn ok",
+        type: "button",
+        onclick: async () => {
+          const name = nameInput.value.trim();
+          const kelas = kelasInput.value.trim();
+          if (!name || !kelas) return;
+          await API.createStudent(name, kelas);
+          await loadAll();
+          nameInput.value = "";
+          kelasInput.value = "";
+          rerender();
+        },
+      },
+      ["Tambah"]
+    );
+
+formRow = el("div", { class: "row" }, [
+      el("div", { style: "flex:1; min-width:220px" }, [nameInput]),
+      el("div", { style: "flex:1; min-width:160px" }, [kelasInput]),
+      addBtn,
+    ]);
+  }
+
+  // Student list table (for both admin and teacher)
   const table = students.length
     ? el("table", {}, [
         el("thead", {}, [

@@ -63,6 +63,19 @@ function requireAdmin(req, res) {
   return caller;
 }
 
+function requireTeacher(req, res) {
+  const caller = getCaller(req);
+  if (!caller) {
+    res.status(401).json({ ok: false, message: "Unauthorized" });
+    return null;
+  }
+  if (caller.role !== "teacher") {
+    res.status(403).json({ ok: false, message: "Akses ditolak (khusus guru)" });
+    return null;
+  }
+  return caller;
+}
+
 function requireLogin(req, res) {
   const caller = getCaller(req);
   if (!caller) {
@@ -116,7 +129,7 @@ app.get("/api/students", (_req, res) => {
 });
 
 app.post("/api/students", (req, res) => {
-  if (!requireTeacher(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const name = String(req.body?.name || "").trim();
   const kelas = String(req.body?.kelas || "").trim();
   if (!name || !kelas) return badRequest(res, "Nama dan kelas wajib diisi");
