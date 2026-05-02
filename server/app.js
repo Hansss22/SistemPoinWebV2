@@ -740,7 +740,7 @@ function renderSanksi() {
       return el("div", { class: "kpi", style: "margin-bottom:12px" }, [
         header,
         desc,
-        actionsRow,
+        ...(actionsRow ? [actionsRow] : []),
         el("div", { class: "hr" }),
         el("div", { style: "font-weight:900; margin-bottom:6px" }, ["Murid terpengaruh"]),
         studentsTable,
