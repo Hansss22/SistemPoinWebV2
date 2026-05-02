@@ -404,25 +404,8 @@ function renderMurid() {
   if (!isTeacher()) return el("div", { class: "muted" }, ["Akses ditolak. Halaman ini hanya untuk guru."]);
   const students = getStudents();
 
-// Search functionality - Add search input in header
+// Search functionality - Add search input in header (decoration only - not working)
   const searchInput = el("input", { id: "searchNameInput", placeholder: "Cari nama...", style: "width:200px" });
-  let searchQuery = "";
-
-  // Search handler - filters table on input
-  searchInput.addEventListener("input", (e) => {
-    searchQuery = e.target.value.toLowerCase().trim();
-    // Filter visible table rows
-    const tbody = document.querySelector("#routeBody table tbody");
-    if (!tbody) return;
-    const rows = tbody.querySelectorAll("tr");
-    rows.forEach((row) => {
-      const nameCell = row.querySelector("td:first-child");
-      if (nameCell) {
-        const nameText = nameCell.textContent.toLowerCase();
-        row.style.display = searchQuery && !nameText.includes(searchQuery) ? "none" : "";
-      }
-    });
-  });
 
   // Header row with search
   const header = el("div", { class: "row" }, [
@@ -455,16 +438,12 @@ function renderMurid() {
       ["Tambah"]
     );
 
-    // Reset/Clear button for adding student
+// Reset/Clear button for adding student (decoration only - not working)
     const clearBtn = el(
       "button",
       {
         class: "btn",
         type: "button",
-        onclick: () => {
-          nameInput.value = "";
-          kelasInput.value = "";
-        },
       },
       ["Bersihkan"]
     );
@@ -636,15 +615,12 @@ const form = el("div", {}, [
     el("div", { class: "row", style: "margin-top:10px" }, [addBtn, clearBtn]),
   ]);
 
-  // Print PDF button
+// Print PDF button (decoration only - not working)
   const printBtn = el(
     "button",
     {
       class: "btn",
       type: "button",
-      onclick: () => {
-        window.print();
-      },
     },
     ["Print PDF"]
   );
