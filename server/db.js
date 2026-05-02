@@ -131,6 +131,10 @@ export async function openDb() {
   if (!cols.has("role")) db.exec("ALTER TABLE users ADD COLUMN role TEXT");
   if (!cols.has("student_id")) db.exec("ALTER TABLE users ADD COLUMN student_id INTEGER");
 
+  const violationCols = db.exec("PRAGMA table_info(violations)");
+  const vCols = new Set((violationCols?.[0]?.values || []).map((v) => String(v[1])));
+  if (!vCols.has("status")) db.exec("ALTER TABLE violations ADD COLUMN status TEXT DEFAULT 'approved'");
+
   // seed sanctions
   const cnt = firstRow(db.exec("SELECT COUNT(*) as n FROM sanctions"))?.n ?? 0;
   if (Number(cnt) === 0) {

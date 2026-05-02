@@ -87,6 +87,7 @@ const API = {
   listViolations: async () => (await API.request("GET", "/api/violations")).violations,
   createViolation: async (studentId, jenis, poin) => (await API.request("POST", "/api/violations", { studentId, jenis, poin })).violation,
   deleteViolation: async (id) => API.request("DELETE", `/api/violations/${id}`),
+  approveViolation: async (id) => API.request("PUT", `/api/violations/${id}/approve`),
 
   listSanctions: async () => (await API.request("GET", "/api/sanctions")).sanctions,
   createSanction: async (payload) => (await API.request("POST", "/api/sanctions", payload)).sanction,
@@ -157,7 +158,7 @@ function getRecords() {
 
 function totalPointsForStudent(studentId) {
   const violations = getViolations();
-  return violations.filter((v) => v.studentId === studentId).reduce((a, b) => a + (b.poin || 0), 0);
+  return violations.filter((v) => v.studentId === studentId && v.status === "approved").reduce((a, b) => a + (b.poin || 0), 0);
 }
 
 function findStudentById(id) {
@@ -563,7 +564,7 @@ function renderCatatan() {
       ? el("div", { class: "muted" }, ["Belum ada catatan pelanggaran"])
       : el("table", {}, [
           el("thead", {}, [
-            el("tr", {}, [el("th", {}, ["Nama"]), el("th", {}, ["Pelanggaran"]), el("th", {}, ["Poin"]), el("th", {}, ["Tanggal"]), el("th", {}, ["Aksi"])]),
+            el("tr", {}, [el("th", {}, ["Nama"]), el("th", {}, ["Pelanggaran"]), el("th", {}, ["Poin"]), el("th", {}, ["Tanggal"]), el("th", {}, ["Status"]), el("th", {}, ["Aksi"])]),
           ]),
           el(
             "tbody",
@@ -584,7 +585,22 @@ function renderCatatan() {
                 },
                 ["Hapus"]
               );
-              return el("tr", {}, [el("td", {}, [s.name]), el("td", {}, [v.jenis]), el("td", {}, [String(v.poin)]), el("td", {}, [fmtDate(v.tanggal)]), el("td", {}, [del])]);
+              const approve = v.status === "pending" && getSession()?.username === "admin" ? el(
+                "button",
+                {
+                  class: "btn sm primary",
+                  type: "button",
+                  onclick: async () => {
+                    await API.approveViolation(v.id);
+                    await loadAll();
+                    rerender();
+                  },
+                },
+                ["Setujui"]
+              ) : null;
+              const actions = [del];
+              if (approve) actions.push(approve);
+              return el("tr", {}, [el("td", {}, [s.name]), el("td", {}, [v.jenis]), el("td", {}, [String(v.poin)]), el("td", {}, [fmtDate(v.tanggal)]), el("td", {}, [v.status === "approved" ? "Disetujui" : "Menunggu"]), el("td", {}, actions)]);
             }),
           ),
         ]);
@@ -733,7 +749,7 @@ function renderSanksi() {
 // -------------------- routing --------------------
 function getRoute() {
   const h = (location.hash || "#dashboard").replace("#", "").trim();
-  const allowed = isTeacher() ? new Set(["dashboard", "murid", "catatan", "sanksi"]) : new Set(["dashboard", "catatan", "sanksi"]);
+  const allowed = isTeacher() ? new Set(["dashboard", "murid", "catatan"]) : new Set(["dashboard", "catatan", "sanksi"]);
   return allowed.has(h) ? h : "dashboard";
 }
 

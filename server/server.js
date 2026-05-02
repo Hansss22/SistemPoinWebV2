@@ -50,14 +50,14 @@ function getCaller(req) {
   };
 }
 
-function requireTeacher(req, res) {
+function requireAdmin(req, res) {
   const caller = getCaller(req);
   if (!caller) {
     res.status(401).json({ ok: false, message: "Unauthorized" });
     return null;
   }
-  if (caller.role !== "teacher") {
-    res.status(403).json({ ok: false, message: "Akses ditolak (khusus guru)" });
+  if (caller.username !== "admin") {
+    res.status(403).json({ ok: false, message: "Akses ditolak (khusus admin)" });
     return null;
   }
   return caller;
@@ -139,16 +139,17 @@ app.get("/api/violations", (_req, res) => {
   const caller = requireLogin(_req, res);
   if (!caller) return;
   if (caller.role === "teacher") {
-    const rows = db.all("SELECT id, student_id as studentId, jenis, poin, tanggal FROM violations ORDER BY id DESC");
+    const rows = db.all("SELECT id, student_id as studentId, jenis, poin, tanggal, status FROM violations ORDER BY id DESC");
     return ok(res, { violations: rows });
   }
   if (!caller.studentId) return ok(res, { violations: [] });
-  const rows = db.all("SELECT id, student_id as studentId, jenis, poin, tanggal FROM violations WHERE student_id = ? ORDER BY id DESC", [caller.studentId]);
+  const rows = db.all("SELECT id, student_id as studentId, jenis, poin, tanggal, status FROM violations WHERE student_id = ? ORDER BY id DESC", [caller.studentId]);
   return ok(res, { violations: rows });
 });
 
 app.post("/api/violations", (req, res) => {
-  if (!requireTeacher(req, res)) return;
+  const caller = requireTeacher(req, res);
+  if (!caller) return;
   const studentId = ensureInt(req.body?.studentId);
   const jenis = String(req.body?.jenis || "").trim();
   const poin = ensureInt(req.body?.poin);
@@ -159,10 +160,11 @@ app.post("/api/violations", (req, res) => {
   const s = db.get("SELECT id FROM students WHERE id = ?", [studentId]);
   if (!s) return badRequest(res, "Murid tidak ditemukan");
 
+  const status = caller.username === "admin" ? "approved" : "pending";
   const id = Date.now();
   const tanggal = Date.now();
-  db.run("INSERT INTO violations (id, student_id, jenis, poin, tanggal) VALUES (?, ?, ?, ?, ?)", [id, studentId, jenis, poin, tanggal]);
-  return ok(res, { violation: { id, studentId, jenis, poin, tanggal } });
+  db.run("INSERT INTO violations (id, student_id, jenis, poin, tanggal, status) VALUES (?, ?, ?, ?, ?, ?)", [id, studentId, jenis, poin, tanggal, status]);
+  return ok(res, { violation: { id, studentId, jenis, poin, tanggal, status } });
 });
 
 app.delete("/api/violations/:id", (req, res) => {
@@ -173,6 +175,14 @@ app.delete("/api/violations/:id", (req, res) => {
   return ok(res);
 });
 
+app.put("/api/violations/:id/approve", (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const id = ensureInt(req.params.id);
+  if (id == null) return badRequest(res, "ID tidak valid");
+  db.run("UPDATE violations SET status = 'approved' WHERE id = ?", [id]);
+  return ok(res);
+});
+
 // ---------- Sanctions ----------
 app.get("/api/sanctions", (_req, res) => {
   const rows = db.all("SELECT id, tingkat, keterangan, min_poin as minPoin, max_poin as maxPoin FROM sanctions ORDER BY min_poin ASC");
@@ -180,7 +190,7 @@ app.get("/api/sanctions", (_req, res) => {
 });
 
 app.post("/api/sanctions", (req, res) => {
-  if (!requireTeacher(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const tingkat = String(req.body?.tingkat || "").trim();
   const keterangan = String(req.body?.keterangan || "").trim();
   const minPoin = ensureInt(req.body?.minPoin);
@@ -194,7 +204,7 @@ app.post("/api/sanctions", (req, res) => {
 });
 
 app.put("/api/sanctions/:id", (req, res) => {
-  if (!requireTeacher(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const id = ensureInt(req.params.id);
   if (id == null) return badRequest(res, "ID tidak valid");
   const tingkat = String(req.body?.tingkat || "").trim();
@@ -209,7 +219,7 @@ app.put("/api/sanctions/:id", (req, res) => {
 });
 
 app.delete("/api/sanctions/:id", (req, res) => {
-  if (!requireTeacher(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const id = ensureInt(req.params.id);
   if (id == null) return badRequest(res, "ID tidak valid");
   db.run("DELETE FROM sanctions WHERE id = ?", [id]);
