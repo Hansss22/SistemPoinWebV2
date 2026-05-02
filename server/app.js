@@ -705,6 +705,7 @@ function renderSanksi() {
       ) : null;
 
       const actionsRow = (editBtn || delBtn) ? el("div", { class: "row", style: "margin-top:10px" }, [editBtn, delBtn].filter(Boolean)) : null;
+      const studentsTable =
         matched.length === 0
           ? el("div", { class: "muted", style: "margin-top:10px" }, ["- Tidak ada murid pada rentang ini -"])
           : el("table", { style: "margin-top:10px" }, [
