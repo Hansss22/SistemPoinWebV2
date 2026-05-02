@@ -404,16 +404,37 @@ function renderMurid() {
   if (!isTeacher()) return el("div", { class: "muted" }, ["Akses ditolak. Halaman ini hanya untuk guru."]);
   const students = getStudents();
 
-  // Jika bukan admin, nurtyboard hanya bisa lihat daftar murid
+// Search functionality - Add search input in header
+  const searchInput = el("input", { id: "searchNameInput", placeholder: "Cari nama...", style: "width:200px" });
+  let searchQuery = "";
+
+  // Search handler - filters table on input
+  searchInput.addEventListener("input", (e) => {
+    searchQuery = e.target.value.toLowerCase().trim();
+    // Filter visible table rows
+    const tbody = document.querySelector("#routeBody table tbody");
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll("tr");
+    rows.forEach((row) => {
+      const nameCell = row.querySelector("td:first-child");
+      if (nameCell) {
+        const nameText = nameCell.textContent.toLowerCase();
+        row.style.display = searchQuery && !nameText.includes(searchQuery) ? "none" : "";
+      }
+    });
+  });
+
+  // Header row with search
   const header = el("div", { class: "row" }, [
     el("div", { style: "font-weight:900" }, ["Daftar Murid"]),
     el("div", { class: "spacer" }),
+    searchInput,
   ]);
 
   let formRow = null;
   if (isAdmin()) {
-    const nameInput = el("input", { placeholder: "Nama murid" });
-    const kelasInput = el("input", { placeholder: "Kelas" });
+    const nameInput = el("input", { id: "studentNameInput", placeholder: "Nama murid" });
+    const kelasInput = el("input", { id: "studentKelasInput", placeholder: "Kelas" });
 
     const addBtn = el(
       "button",
@@ -434,10 +455,25 @@ function renderMurid() {
       ["Tambah"]
     );
 
-formRow = el("div", { class: "row" }, [
+    // Reset/Clear button for adding student
+    const clearBtn = el(
+      "button",
+      {
+        class: "btn",
+        type: "button",
+        onclick: () => {
+          nameInput.value = "";
+          kelasInput.value = "";
+        },
+      },
+      ["Bersihkan"]
+    );
+
+    formRow = el("div", { class: "row" }, [
       el("div", { style: "flex:1; min-width:220px" }, [nameInput]),
       el("div", { style: "flex:1; min-width:160px" }, [kelasInput]),
       addBtn,
+      clearBtn,
     ]);
   }
 
@@ -591,7 +627,7 @@ function renderCatatan() {
     ["Bersihkan"]
   );
 
-  const form = el("div", {}, [
+const form = el("div", {}, [
     el("div", { class: "row" }, [
       el("div", { style: "flex:1; min-width:220px" }, [studentSel]),
       el("div", { style: "flex:1; min-width:260px" }, [jenisSel]),
@@ -599,6 +635,19 @@ function renderCatatan() {
     ]),
     el("div", { class: "row", style: "margin-top:10px" }, [addBtn, clearBtn]),
   ]);
+
+  // Print PDF button
+  const printBtn = el(
+    "button",
+    {
+      class: "btn",
+      type: "button",
+      onclick: () => {
+        window.print();
+      },
+    },
+    ["Print PDF"]
+  );
 
   const table =
     violations.length === 0
@@ -646,7 +695,17 @@ function renderCatatan() {
           ),
         ]);
 
-  return el("div", {}, [el("div", { style: "font-weight:900; margin-bottom:10px" }, ["Tambah Catatan Pelanggaran"]), form, el("div", { class: "hr" }), el("div", { style: "font-weight:900; margin-bottom:10px" }, ["Riwayat Pelanggaran"]), table]);
+return el("div", {}, [
+    el("div", { class: "row", style: "margin-bottom:10px" }, [
+      el("div", { style: "font-weight:900" }, ["Tambah Catatan Pelanggaran"]),
+      el("div", { class: "spacer" }),
+      printBtn
+    ]),
+    form,
+    el("div", { class: "hr" }),
+    el("div", { style: "font-weight:900; margin-bottom:10px" }, ["Riwayat Pelanggaran"]),
+    table
+  ]);
 }
 
 function renderSanksi() {
