@@ -404,8 +404,8 @@ function renderMurid() {
   if (!isTeacher()) return el("div", { class: "muted" }, ["Akses ditolak. Halaman ini hanya untuk guru."]);
   const students = getStudents();
 
-// Search functionality - Add search input in header (decoration only - not working)
   const searchInput = el("input", { id: "searchNameInput", placeholder: "Cari nama...", style: "width:200px" });
+
 
   // Header row with search
   const header = el("div", { class: "row" }, [
@@ -438,12 +438,16 @@ function renderMurid() {
       ["Tambah"]
     );
 
-// Reset/Clear button for adding student (decoration only - not working)
+// Bersihkan button (works)
     const clearBtn = el(
       "button",
       {
         class: "btn",
         type: "button",
+        onclick: () => {
+          nameInput.value = "";
+          kelasInput.value = "";
+        },
       },
       ["Bersihkan"]
     );
@@ -534,8 +538,127 @@ function renderMurid() {
       ])
     : el("div", { class: "muted", style: "margin-top:10px" }, ["Belum ada data murid"]);
 
+  // Apply search filter (works for admin/teacher)
+  const getFilteredStudents = () => {
+    const q = String(searchInput.value || "").trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) => String(s.name || "").toLowerCase().includes(q));
+  };
+
+  // Rebuild table when user types
+  const rebuildTable = () => {
+    const filtered = getFilteredStudents();
+    const newTable = filtered.length
+      ? el("table", {}, [
+          el("thead", {}, [
+            el("tr", {}, [el("th", {}, ["Nama"]), el("th", {}, ["Kelas"]), el("th", {}, ["Poin"]), el("th", {}, ["Sanksi"]), el("th", {}, ["Status"]), el("th", {}, ["Aksi"])])
+          ]),
+          el(
+            "tbody",
+            {},
+            filtered.map((s) => {
+              const pts = totalPointsForStudent(s.id);
+              const sanction = getSanctionForPoints(pts);
+              const counts = countsByStatusForStudent(s.id);
+              const status = effectiveStatusForStudent(s.id);
+
+              const del = isAdmin()
+                ? el(
+                    "button",
+                    {
+                      class: "btn sm danger",
+                      type: "button",
+                      onclick: async () => {
+                        if (!confirm(`Hapus murid "${s.name}"?`)) return;
+                        await API.deleteStudent(s.id);
+                        await loadAll();
+                        rerender();
+                      },
+                    },
+                    ["Hapus"]
+                  )
+                : null;
+
+              const editBtn = isAdmin()
+                ? el(
+                    "button",
+                    {
+                      class: "btn sm",
+                      type: "button",
+                      onclick: async () => {
+                        const newName = prompt("Nama baru:", s.name);
+                        if (newName == null) return;
+                        const newKelas = prompt("Kelas baru:", s.kelas);
+                        if (newKelas == null) return;
+                        if (!newName.trim() || !newKelas.trim()) {
+                          alert("Nama dan kelas wajib diisi");
+                          return;
+                        }
+                        await API.updateStudent(s.id, newName.trim(), newKelas.trim());
+                        await loadAll();
+                        rerender();
+                      },
+                    },
+                    ["Ubah"]
+                  )
+                : null;
+
+              const statusBadges = el("div", { class: "row" }, [
+                counts.pending ? pill(`P:${counts.pending}`, "blue") : null,
+                counts.applied ? pill(`A:${counts.applied}`, "green") : null,
+                counts.reviewed ? pill(`R:${counts.reviewed}`, "grey") : null,
+              ]);
+
+              const actions = [editBtn, del].filter(Boolean);
+              return el("tr", {}, [
+                el("td", {}, [el("div", { style: "font-weight:900" }, [s.name]), el("div", { class: "muted" }, [`ID: ${s.id}`])]),
+                el("td", {}, [s.kelas]),
+                el("td", {}, [String(pts)]),
+                el("td", {}, [sanction ? levelPill(sanction.tingkat) : pill("-", "grey")]),
+                el("td", {}, [status ? statusPill(status) : pill("-", "grey"), el("div", { style: "margin-top:6px" }, [statusBadges])]),
+                el("td", {}, actions),
+              ]);
+            })
+          ),
+        ])
+      : el("div", { class: "muted", style: "margin-top:10px" }, ["Belum ada data murid"]);
+
+    table.replaceWith(newTable);
+    table = newTable;
+  };
+
+  // initial build with full list
+  let table = table; // alias to allow replaceWith usage above
+  // Wire up search input
+  searchInput.addEventListener("input", () => {
+    // quick debounce via rAF
+    if (window.__muridSearchRaf) cancelAnimationFrame(window.__muridSearchRaf);
+    window.__muridSearchRaf = requestAnimationFrame(() => {
+      try {
+        rebuildTable();
+      } catch {
+        // fallback: full rerender if something unexpected happens
+        rerender();
+      }
+    });
+  });
+
+  // Bersihkan button for admin (works)
+  if (formRow) {
+    const clearBtn = formRow.querySelector('button.btn:not(.ok)');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        const ni = $("#studentNameInput");
+        const ki = $("#studentKelasInput");
+        if (ni) ni.value = "";
+        if (ki) ki.value = "";
+      };
+    }
+  }
+
   return el("div", {}, [header, formRow, el("div", { class: "hr" }), table]);
 }
+
 
 function renderCatatan() {
   const students = getStudents();
@@ -615,15 +738,80 @@ const form = el("div", {}, [
     el("div", { class: "row", style: "margin-top:10px" }, [addBtn, clearBtn]),
   ]);
 
-// Print PDF button (decoration only - not working)
+  // Print PDF (actually triggers browser print with print-friendly markup)
   const printBtn = el(
     "button",
     {
       class: "btn",
       type: "button",
+      onclick: () => {
+        const printTitle = "Riwayat Pelanggaran";
+        const headerInfo = getSession()?.username ? `User: ${getSession().username}` : "";
+        const rowsHtml = violations
+          .map((v) => {
+            const s = findStudentById(v.studentId) || { name: "(–)" };
+            const statusText = v.status === "approved" ? "Disetujui" : "Menunggu";
+            return `
+              <tr>
+                <td>${String(s.name)}</td>
+                <td>${String(v.jenis)}</td>
+                <td style="text-align:right">${String(v.poin)}</td>
+                <td>${fmtDate(v.tanggal)}</td>
+                <td>${String(statusText)}</td>
+              </tr>`;
+          })
+          .join("");
+
+        const w = window.open("", "_blank", "noopener,noreferrer");
+        if (!w) {
+          alert("Pop-up diblokir. Izinkan pop-up untuk fitur print.");
+          return;
+        }
+
+        w.document.write(`
+          <!doctype html>
+          <html lang="id">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>${printTitle}</title>
+              <style>
+                body{font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; margin:24px; color:#0b1020}
+                h1{font-size:18px; margin:0 0 8px}
+                .muted{color:#475569; font-size:12px; margin-bottom:16px}
+                table{width:100%; border-collapse:collapse}
+                th,td{border:1px solid #e2e8f0; padding:8px; text-align:left; font-size:12px}
+                th{background:#f8fafc}
+                @media print{ .no-print{display:none} }
+              </style>
+            </head>
+            <body>
+              <h1>${printTitle}</h1>
+              <div class="muted">${headerInfo}</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>Pelanggaran</th>
+                    <th>Poin</th>
+                    <th>Tanggal</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml || `<tr><td colspan="5">Belum ada catatan pelanggaran</td></tr>`}
+                </tbody>
+              </table>
+              <script>setTimeout(()=>{window.print();}, 200);</script>
+            </body>
+          </html>
+        `);
+        w.document.close();
+      },
     },
     ["Print PDF"]
   );
+
 
   const table =
     violations.length === 0
