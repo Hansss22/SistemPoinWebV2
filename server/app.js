@@ -803,7 +803,7 @@ const form = el("div", {}, [
                   ${rowsHtml || `<tr><td colspan="5">Belum ada catatan pelanggaran</td></tr>`}
                 </tbody>
               </table>
-              <script>setTimeout(()=>{window.print();}, 200);</script>
+              <script>setTimeout(()=>{window.print();}, 50);</script>
             </body>
           </html>
         `);
