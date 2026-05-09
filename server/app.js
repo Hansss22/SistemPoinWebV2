@@ -460,8 +460,9 @@ function renderMurid() {
     ]);
   }
 
-// Student list table (for both admin and teacher)
-  const table = students.length
+  // Student list table (for both admin and teacher)
+  let table = students.length
+
     ? el("table", {}, [
         el("thead", {}, [
           el("tr", {}, [el("th", {}, ["Nama"]), el("th", {}, ["Kelas"]), el("th", {}, ["Poin"]), el("th", {}, ["Sanksi"]), el("th", {}, ["Status"]), el("th", {}, ["Aksi"])]),
@@ -627,8 +628,8 @@ function renderMurid() {
     table = newTable;
   };
 
-  // initial build with full list
-  let table = table; // alias to allow replaceWith usage above
+  // initial build with full list (table sudah dideklarasikan sebelumnya)
+
   // Wire up search input
   searchInput.addEventListener("input", () => {
     // quick debounce via rAF
