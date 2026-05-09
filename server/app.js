@@ -750,11 +750,12 @@ const form = el("div", {}, [
         const headerInfo = getSession()?.username ? `User: ${getSession().username}` : "";
         const rowsHtml = violations
           .map((v) => {
-            const s = findStudentById(v.studentId) || { name: "(–)" };
+            const s = findStudentById(v.studentId) || { name: "(–)", kelas: "-" };
             const statusText = v.status === "approved" ? "Disetujui" : "Menunggu";
             return `
               <tr>
                 <td>${String(s.name)}</td>
+                <td>${String(s.kelas)}</td>
                 <td>${String(v.jenis)}</td>
                 <td style="text-align:right">${String(v.poin)}</td>
                 <td>${fmtDate(v.tanggal)}</td>
@@ -763,51 +764,52 @@ const form = el("div", {}, [
           })
           .join("");
 
-        const w = window.open("", "_blank", "noopener,noreferrer");
-        if (!w) {
-          alert("Pop-up diblokir. Izinkan pop-up untuk fitur print.");
-          return;
-        }
+        const existingPrint = $("#__printModal");
+        if (existingPrint) existingPrint.remove();
 
-        w.document.write(`
-          <!doctype html>
-          <html lang="id">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>${printTitle}</title>
-              <style>
-                body{font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; margin:24px; color:#0b1020}
-                h1{font-size:18px; margin:0 0 8px}
-                .muted{color:#475569; font-size:12px; margin-bottom:16px}
-                table{width:100%; border-collapse:collapse}
-                th,td{border:1px solid #e2e8f0; padding:8px; text-align:left; font-size:12px}
-                th{background:#f8fafc}
-                @media print{ .no-print{display:none} }
-              </style>
-            </head>
-            <body>
-              <h1>${printTitle}</h1>
-              <div class="muted">${headerInfo}</div>
-              <table>
+        const printWrap = el("div", { id: "__printModal" }, []);
+        printWrap.innerHTML = `
+          <style>
+            @media print {
+              body * { visibility: hidden !important; }
+              #__printModal, #__printModal * { visibility: visible !important; }
+              #__printModal { position: static !important; inset: auto !important; width: 100% !important; min-width: auto !important; background: #fff !important; box-shadow: none !important; }
+            }
+          </style>
+          <div style="position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; z-index:9999; padding:16px;">
+            <div style="background:#fff; color:#111; width:min(900px, 100%); border-radius:12px; overflow:auto; padding:16px;">
+              <h2 style="margin:0 0 8px; font-size:16px;">${printTitle}</h2>
+              <div style="color:#475569; font-size:12px; margin-bottom:12px;">${headerInfo}</div>
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                   <tr>
-                    <th>Nama</th>
-                    <th>Pelanggaran</th>
-                    <th>Poin</th>
-                    <th>Tanggal</th>
-                    <th>Status</th>
+                    <th style="border:1px solid #e2e8f0; padding:8px; background:#f8fafc; text-align:left;">Nama</th>
+                    <th style="border:1px solid #e2e8f0; padding:8px; background:#f8fafc; text-align:left;">Kelas</th>
+                    <th style="border:1px solid #e2e8f0; padding:8px; background:#f8fafc; text-align:left;">Pelanggaran</th>
+                    <th style="border:1px solid #e2e8f0; padding:8px; background:#f8fafc; text-align:right;">Poin</th>
+                    <th style="border:1px solid #e2e8f0; padding:8px; background:#f8fafc; text-align:left;">Tanggal</th>
+                    <th style="border:1px solid #e2e8f0; padding:8px; background:#f8fafc; text-align:left;">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${rowsHtml || `<tr><td colspan="5">Belum ada catatan pelanggaran</td></tr>`}
+                  ${rowsHtml || `<tr><td colspan="6" style="border:1px solid #e2e8f0; padding:8px;">Belum ada catatan pelanggaran</td></tr>`}
                 </tbody>
               </table>
-              <script>setTimeout(()=>{window.print();}, 50);</script>
-            </body>
-          </html>
-        `);
-        w.document.close();
+              <div style="margin-top:10px; color:#475569; font-size:12px;">(Gunakan dialog Print dari browser)</div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(printWrap);
+
+        const cleanupPrint = () => {
+          const x = $("#__printModal");
+          if (x) x.remove();
+          window.removeEventListener("afterprint", cleanupPrint);
+        };
+
+        window.addEventListener("afterprint", cleanupPrint);
+        window.print();
       },
     },
     ["Print PDF"]
