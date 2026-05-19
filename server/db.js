@@ -103,6 +103,7 @@ export async function openDb() {
       jenis TEXT NOT NULL,
       poin INTEGER NOT NULL,
       tanggal INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
       FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
     );
 
