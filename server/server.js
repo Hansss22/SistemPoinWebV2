@@ -219,12 +219,22 @@ app.get("/api/sanctions", (_req, res) => {
 
 app.post("/api/sanctions", (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const tingkat = String(req.body?.tingkat || "").trim();
+  const tingkat    = String(req.body?.tingkat    || "").trim();
   const keterangan = String(req.body?.keterangan || "").trim();
-  const minPoin = ensureInt(req.body?.minPoin);
-  const maxPoin = ensureInt(req.body?.maxPoin);
+  const minPoin    = ensureInt(req.body?.minPoin);
+  const maxPoin    = ensureInt(req.body?.maxPoin);
   if (!tingkat || !keterangan) return badRequest(res, "Tingkat dan keterangan wajib diisi");
-  if (minPoin == null || maxPoin == null || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin) return badRequest(res, "Rentang poin tidak valid");
+  if (minPoin == null || maxPoin == null || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin)
+    return badRequest(res, "Rentang poin tidak valid (min ≥ 0, max ≥ 0, min ≤ max)");
+
+  // Reject if the new range overlaps any existing sanction.
+  const others = db.all("SELECT id, tingkat, min_poin, max_poin FROM sanctions");
+  for (const e of others) {
+    if (maxPoin >= e.min_poin && minPoin <= e.max_poin) {
+      return badRequest(res,
+        `Rentang poin ${minPoin}–${maxPoin} bertabrakan dengan sanksi "${e.tingkat}" (${e.min_poin}–${e.max_poin})`);
+    }
+  }
 
   const id = Date.now();
   db.run("INSERT INTO sanctions (id, tingkat, keterangan, min_poin, max_poin) VALUES (?, ?, ?, ?, ?)", [id, tingkat, keterangan, minPoin, maxPoin]);
@@ -233,14 +243,24 @@ app.post("/api/sanctions", (req, res) => {
 
 app.put("/api/sanctions/:id", (req, res) => {
   if (!requireAdmin(req, res)) return;
-  const id = ensureInt(req.params.id);
+  const id         = ensureInt(req.params.id);
   if (id == null) return badRequest(res, "ID tidak valid");
-  const tingkat = String(req.body?.tingkat || "").trim();
+  const tingkat    = String(req.body?.tingkat    || "").trim();
   const keterangan = String(req.body?.keterangan || "").trim();
-  const minPoin = ensureInt(req.body?.minPoin);
-  const maxPoin = ensureInt(req.body?.maxPoin);
+  const minPoin    = ensureInt(req.body?.minPoin);
+  const maxPoin    = ensureInt(req.body?.maxPoin);
   if (!tingkat || !keterangan) return badRequest(res, "Tingkat dan keterangan wajib diisi");
-  if (minPoin == null || maxPoin == null || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin) return badRequest(res, "Rentang poin tidak valid");
+  if (minPoin == null || maxPoin == null || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin)
+    return badRequest(res, "Rentang poin tidak valid");
+
+  // Reject if the updated range overlaps any other sanction (exclude self).
+  const others = db.all("SELECT id, tingkat, min_poin, max_poin FROM sanctions WHERE id != ?", [id]);
+  for (const e of others) {
+    if (maxPoin >= e.min_poin && minPoin <= e.max_poin) {
+      return badRequest(res,
+        `Rentang poin ${minPoin}–${maxPoin} bertabrakan dengan sanksi "${e.tingkat}" (${e.min_poin}–${e.max_poin})`);
+    }
+  }
 
   db.run("UPDATE sanctions SET tingkat=?, keterangan=?, min_poin=?, max_poin=? WHERE id=?", [tingkat, keterangan, minPoin, maxPoin, id]);
   return ok(res);
