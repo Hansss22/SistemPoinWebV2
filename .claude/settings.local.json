@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d/proyek/proting/web/SistemPoinWebV2 && pwd && ls -la)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 'refactor: improve code quality, UI/UX, and security' --body ' *)",
+      "PowerShell($cmd = Get-Command gh -ErrorAction SilentlyContinue; if \\($cmd\\) { $cmd.Source } else { \"not found\" })",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\GitHub CLI\" -ErrorAction SilentlyContinue; Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\GitHub CLI\" -ErrorAction SilentlyContinue; Get-ChildItem \"$env:ProgramFiles\\\\GitHub CLI\" -ErrorAction SilentlyContinue)",
+      "Bash(git -C \"D:\\\\proyek\\\\proting\\\\web\\\\SistemPoinWebV2\\\\.claude\\\\worktrees\\\\xenodochial-black-0d8ea7\" credential fill)"
+    ]
+  }
+}
