@@ -226,6 +226,12 @@ app.post("/api/sanctions", (req, res) => {
   if (!tingkat || !keterangan) return badRequest(res, "Tingkat dan keterangan wajib diisi");
   if (minPoin == null || maxPoin == null || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin) return badRequest(res, "Rentang poin tidak valid");
 
+  const overlap = db.get(
+    "SELECT tingkat FROM sanctions WHERE min_poin <= ? AND max_poin >= ?",
+    [maxPoin, minPoin]
+  );
+  if (overlap) return badRequest(res, `Rentang poin tumpang tindih dengan sanksi "${overlap.tingkat}"`);
+
   const id = Date.now();
   db.run("INSERT INTO sanctions (id, tingkat, keterangan, min_poin, max_poin) VALUES (?, ?, ?, ?, ?)", [id, tingkat, keterangan, minPoin, maxPoin]);
   return ok(res, { sanction: { id, tingkat, keterangan, minPoin, maxPoin } });
@@ -241,6 +247,12 @@ app.put("/api/sanctions/:id", (req, res) => {
   const maxPoin = ensureInt(req.body?.maxPoin);
   if (!tingkat || !keterangan) return badRequest(res, "Tingkat dan keterangan wajib diisi");
   if (minPoin == null || maxPoin == null || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin) return badRequest(res, "Rentang poin tidak valid");
+
+  const overlapUpdate = db.get(
+    "SELECT tingkat FROM sanctions WHERE min_poin <= ? AND max_poin >= ? AND id != ?",
+    [maxPoin, minPoin, id]
+  );
+  if (overlapUpdate) return badRequest(res, `Rentang poin tumpang tindih dengan sanksi "${overlapUpdate.tingkat}"`);
 
   db.run("UPDATE sanctions SET tingkat=?, keterangan=?, min_poin=?, max_poin=? WHERE id=?", [tingkat, keterangan, minPoin, maxPoin, id]);
   return ok(res);

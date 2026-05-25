@@ -205,6 +205,36 @@ th{color:var(--muted); font-size:12px; text-align:left}
 .footer{margin-top:14px; padding:10px 4px}
 code{color:rgba(233,238,255,.92)}
 
+/* ---- Toast notifications ---- */
+.toast-container{
+  position:fixed; bottom:24px; right:24px;
+  z-index:10000;
+  display:flex; flex-direction:column; gap:8px;
+  pointer-events:none;
+}
+.toast{
+  padding:12px 16px;
+  border-radius:12px;
+  font-size:13px; font-weight:600;
+  max-width:320px;
+  opacity:0; transform:translateX(16px);
+  transition: opacity .25s, transform .25s;
+}
+.toast.toast-show{ opacity:1; transform:translateX(0) }
+.toast-success{ background:rgba(45,212,191,.2);  border:1px solid rgba(45,212,191,.45); color:#7bf0e2 }
+.toast-error  { background:rgba(255,77,109,.15); border:1px solid rgba(255,77,109,.45); color:#ffb3c1 }
+.toast-info   { background:rgba(79,110,247,.18); border:1px solid rgba(79,110,247,.45); color:#b3c4ff }
+
+/* ---- Sanksi card hover effect ---- */
+.sanksi-card{
+  transition: border-color .2s, box-shadow .2s;
+  cursor:default;
+}
+.sanksi-card:hover{
+  border-color:rgba(79,110,247,.35);
+  box-shadow: 0 0 0 2px rgba(79,110,247,.10), var(--shadow);
+}
+
 /* ---- Custom Modal (mengganti alert/confirm/prompt native) ---- */
 .modal-overlay{
   position:fixed; inset:0;
