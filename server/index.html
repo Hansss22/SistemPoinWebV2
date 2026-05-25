@@ -88,5 +88,71 @@
     </div>
 
     <script src="./app.js" defer></script>
+
+    <!-- Modal generik: alert / confirm / prompt -->
+    <div id="modalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <p id="modalMsg" class="modal-msg"></p>
+        <div id="modalInputWrap" class="modal-input-wrap hidden">
+          <input id="modalInput" type="text" autocomplete="off" />
+        </div>
+        <div class="modal-actions">
+          <button id="modalOk" class="btn primary" type="button">OK</button>
+          <button id="modalCancel" class="btn" type="button">Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal form sanksi (tambah / ubah) -->
+    <div id="sanksiModalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <p id="sanksiModalTitle" class="modal-msg" style="font-weight:900;margin-bottom:14px"></p>
+        <div class="form" style="margin-bottom:16px">
+          <label class="field">
+            <span>Tingkat</span>
+            <input id="sanksiTingkat" type="text" placeholder="contoh: Ringan / Sedang / Berat" autocomplete="off" />
+          </label>
+          <label class="field">
+            <span>Keterangan</span>
+            <input id="sanksiKeterangan" type="text" autocomplete="off" />
+          </label>
+          <label class="field">
+            <span>Min Poin</span>
+            <input id="sanksiMinPoin" type="number" min="0" />
+          </label>
+          <label class="field">
+            <span>Max Poin</span>
+            <input id="sanksiMaxPoin" type="number" min="0" />
+          </label>
+          <div id="sanksiModalError" class="alert hidden"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="sanksiModalOk" class="btn primary" type="button">Simpan</button>
+          <button id="sanksiModalCancel" class="btn" type="button">Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal form murid (ubah) -->
+    <div id="muridModalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <p class="modal-msg" style="font-weight:900;margin-bottom:14px">Ubah Data Murid</p>
+        <div class="form" style="margin-bottom:16px">
+          <label class="field">
+            <span>Nama</span>
+            <input id="muridNama" type="text" autocomplete="off" />
+          </label>
+          <label class="field">
+            <span>Kelas</span>
+            <input id="muridKelas" type="text" autocomplete="off" />
+          </label>
+          <div id="muridModalError" class="alert hidden"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="muridModalOk" class="btn primary" type="button">Simpan</button>
+          <button id="muridModalCancel" class="btn" type="button">Batal</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

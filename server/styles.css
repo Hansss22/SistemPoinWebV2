@@ -204,3 +204,30 @@ th{color:var(--muted); font-size:12px; text-align:left}
 
 .footer{margin-top:14px; padding:10px 4px}
 code{color:rgba(233,238,255,.92)}
+
+/* ---- Custom Modal (mengganti alert/confirm/prompt native) ---- */
+.modal-overlay{
+  position:fixed; inset:0;
+  background: rgba(0,0,0,.60);
+  backdrop-filter: blur(4px);
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999;
+}
+.modal-box{
+  background: var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:24px;
+  max-width:400px;
+  width:90%;
+  box-shadow: var(--shadow);
+}
+.modal-msg{
+  margin:0 0 16px;
+  font-size:14px;
+  line-height:1.5;
+}
+.modal-input-wrap{ margin-bottom:16px }
+.modal-actions{
+  display:flex; gap:10px; justify-content:flex-end;
+}

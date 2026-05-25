@@ -1,5 +1,161 @@
-/* eslint-disable no-alert */
 // Single-file SPA (no build step). Data model follows the Flutter version.
+
+// ---- Modal helpers (mengganti alert/confirm/prompt native) ----
+function showModal({ message, type, defaultValue = "" }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("modalOverlay");
+    const msg     = document.getElementById("modalMsg");
+    const wrap    = document.getElementById("modalInputWrap");
+    const input   = document.getElementById("modalInput");
+    const ok      = document.getElementById("modalOk");
+    const cancel  = document.getElementById("modalCancel");
+
+    msg.textContent = message;
+
+    if (type === "prompt") {
+      wrap.classList.remove("hidden");
+      input.value = defaultValue;
+      ok.textContent = "OK";
+      cancel.classList.remove("hidden");
+      cancel.textContent = "Batal";
+    } else if (type === "confirm") {
+      wrap.classList.add("hidden");
+      ok.textContent = "Ya";
+      cancel.classList.remove("hidden");
+      cancel.textContent = "Tidak";
+    } else {
+      wrap.classList.add("hidden");
+      ok.textContent = "OK";
+      cancel.classList.add("hidden");
+    }
+
+    overlay.classList.remove("hidden");
+    if (type === "prompt") {
+      setTimeout(() => input.focus(), 50);
+    } else {
+      setTimeout(() => ok.focus(), 50);
+    }
+
+    const cleanup = () => {
+      overlay.classList.add("hidden");
+      ok.onclick = null;
+      cancel.onclick = null;
+      input.onkeydown = null;
+    };
+
+    ok.onclick = () => {
+      const val = type === "prompt" ? input.value : type === "confirm" ? true : undefined;
+      cleanup();
+      resolve(val);
+    };
+    cancel.onclick = () => {
+      cleanup();
+      resolve(type === "prompt" ? null : false);
+    };
+    if (type === "prompt") {
+      input.onkeydown = (e) => {
+        if (e.key === "Enter") ok.click();
+        if (e.key === "Escape") cancel.click();
+      };
+    }
+  });
+}
+
+function showAlert(message) {
+  return showModal({ message, type: "alert" });
+}
+function showConfirm(message) {
+  return showModal({ message, type: "confirm" });
+}
+function showPromptModal(label, defaultValue = "") {
+  return showModal({ message: label, type: "prompt", defaultValue });
+}
+
+// Modal form sanksi (tambah/ubah) - semua field sekaligus
+function showSanksiForm(existing) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("sanksiModalOverlay");
+    const title   = document.getElementById("sanksiModalTitle");
+    const tingkat = document.getElementById("sanksiTingkat");
+    const ket     = document.getElementById("sanksiKeterangan");
+    const minP    = document.getElementById("sanksiMinPoin");
+    const maxP    = document.getElementById("sanksiMaxPoin");
+    const errDiv  = document.getElementById("sanksiModalError");
+    const ok      = document.getElementById("sanksiModalOk");
+    const cancel  = document.getElementById("sanksiModalCancel");
+
+    title.textContent = existing ? "Ubah Sanksi" : "Tambah Sanksi";
+    tingkat.value = existing?.tingkat || "";
+    ket.value     = existing?.keterangan || "";
+    minP.value    = existing?.minPoin ?? "";
+    maxP.value    = existing?.maxPoin ?? "";
+    errDiv.textContent = "";
+    errDiv.classList.add("hidden");
+
+    overlay.classList.remove("hidden");
+    setTimeout(() => tingkat.focus(), 50);
+
+    const cleanup = () => {
+      overlay.classList.add("hidden");
+      ok.onclick = null;
+      cancel.onclick = null;
+    };
+
+    ok.onclick = () => {
+      const t  = tingkat.value.trim();
+      const k  = ket.value.trim();
+      const mn = Number(minP.value);
+      const mx = Number(maxP.value);
+      if (!t || !k || !Number.isFinite(mn) || !Number.isFinite(mx) || mn < 0 || mx < 0 || mn > mx) {
+        errDiv.textContent = "Periksa input sanksi";
+        errDiv.classList.remove("hidden");
+        return;
+      }
+      cleanup();
+      resolve({ tingkat: t, keterangan: k, minPoin: mn, maxPoin: mx });
+    };
+    cancel.onclick = () => { cleanup(); resolve(null); };
+  });
+}
+
+// Modal form ubah murid - semua field sekaligus
+function showMuridForm(student) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("muridModalOverlay");
+    const nama    = document.getElementById("muridNama");
+    const kelas   = document.getElementById("muridKelas");
+    const errDiv  = document.getElementById("muridModalError");
+    const ok      = document.getElementById("muridModalOk");
+    const cancel  = document.getElementById("muridModalCancel");
+
+    nama.value  = student?.name || "";
+    kelas.value = student?.kelas || "";
+    errDiv.textContent = "";
+    errDiv.classList.add("hidden");
+
+    overlay.classList.remove("hidden");
+    setTimeout(() => nama.focus(), 50);
+
+    const cleanup = () => {
+      overlay.classList.add("hidden");
+      ok.onclick = null;
+      cancel.onclick = null;
+    };
+
+    ok.onclick = () => {
+      const n = nama.value.trim();
+      const k = kelas.value.trim();
+      if (!n || !k) {
+        errDiv.textContent = "Nama dan kelas wajib diisi";
+        errDiv.classList.remove("hidden");
+        return;
+      }
+      cleanup();
+      resolve({ name: n, kelas: k });
+    };
+    cancel.onclick = () => { cleanup(); resolve(null); };
+  });
+}
 
 const StorageKeys = {
   // session tetap disimpan di browser (simple)
@@ -484,7 +640,7 @@ function renderMurid() {
                     class: "btn sm danger",
                     type: "button",
                     onclick: async () => {
-                      if (!confirm(`Hapus murid "${s.name}"?`)) return;
+                      if (!await showConfirm(`Hapus murid "${s.name}"?`)) return;
                       await API.deleteStudent(s.id);
                       await loadAll();
                       rerender();
@@ -502,15 +658,9 @@ function renderMurid() {
                     class: "btn sm",
                     type: "button",
                     onclick: async () => {
-                      const newName = prompt("Nama baru:", s.name);
-                      if (newName == null) return;
-                      const newKelas = prompt("Kelas baru:", s.kelas);
-                      if (newKelas == null) return;
-                      if (!newName.trim() || !newKelas.trim()) {
-                        alert("Nama dan kelas wajib diisi");
-                        return;
-                      }
-                      await API.updateStudent(s.id, newName.trim(), newKelas.trim());
+                      const result = await showMuridForm(s);
+                      if (!result) return;
+                      await API.updateStudent(s.id, result.name, result.kelas);
                       await loadAll();
                       rerender();
                     },
@@ -570,7 +720,7 @@ function renderMurid() {
                       class: "btn sm danger",
                       type: "button",
                       onclick: async () => {
-                        if (!confirm(`Hapus murid "${s.name}"?`)) return;
+                        if (!await showConfirm(`Hapus murid "${s.name}"?`)) return;
                         await API.deleteStudent(s.id);
                         await loadAll();
                         rerender();
@@ -587,15 +737,9 @@ function renderMurid() {
                       class: "btn sm",
                       type: "button",
                       onclick: async () => {
-                        const newName = prompt("Nama baru:", s.name);
-                        if (newName == null) return;
-                        const newKelas = prompt("Kelas baru:", s.kelas);
-                        if (newKelas == null) return;
-                        if (!newName.trim() || !newKelas.trim()) {
-                          alert("Nama dan kelas wajib diisi");
-                          return;
-                        }
-                        await API.updateStudent(s.id, newName.trim(), newKelas.trim());
+                        const result = await showMuridForm(s);
+                        if (!result) return;
+                        await API.updateStudent(s.id, result.name, result.kelas);
                         await loadAll();
                         rerender();
                       },
@@ -702,7 +846,7 @@ function renderCatatan() {
         const sid = Number(studentSel.value || 0);
         const jenis = JenisPelanggaran.find((x) => x.key === jenisSel.value);
         if (!sid || !jenis) {
-          alert("Lengkapi pilihan murid dan jenis pelanggaran");
+          await showAlert("Lengkapi pilihan murid dan jenis pelanggaran");
           return;
         }
         await API.createViolation(sid, jenis.label, jenis.poin);
@@ -834,7 +978,7 @@ const form = el("div", {}, [
                   class: "btn sm danger",
                   type: "button",
                   onclick: async () => {
-                    if (!confirm("Hapus catatan ini?")) return;
+                    if (!await showConfirm("Hapus catatan ini?")) return;
                     await API.deleteViolation(v.id);
                     await loadAll();
                     rerender();
@@ -913,21 +1057,12 @@ function renderSanksi() {
   }
 
   async function openForm(existing) {
-    const tingkat = prompt(existing ? "Tingkat" : "Tingkat (contoh: Ringan/Sedang/Berat)", existing?.tingkat || "");
-    if (tingkat == null) return;
-    const keterangan = prompt("Keterangan", existing?.keterangan || "");
-    if (keterangan == null) return;
-    const minPoin = Number(prompt("Min poin", existing?.minPoin ?? ""));
-    const maxPoin = Number(prompt("Max poin", existing?.maxPoin ?? ""));
-    if (!tingkat.trim() || !keterangan.trim() || !Number.isFinite(minPoin) || !Number.isFinite(maxPoin) || minPoin < 0 || maxPoin < 0 || minPoin > maxPoin) {
-      alert("Periksa input sanksi");
-      return;
-    }
-
+    const data = await showSanksiForm(existing);
+    if (!data) return;
     if (existing) {
-      await API.updateSanction(existing.id, { tingkat: tingkat.trim(), keterangan: keterangan.trim(), minPoin, maxPoin });
+      await API.updateSanction(existing.id, data);
     } else {
-      await API.createSanction({ tingkat: tingkat.trim(), keterangan: keterangan.trim(), minPoin, maxPoin });
+      await API.createSanction(data);
     }
     await loadAll();
     rerender();
@@ -959,7 +1094,7 @@ function renderSanksi() {
           class: "btn sm danger",
           type: "button",
           onclick: async () => {
-            if (!confirm(`Hapus sanksi "${s.tingkat}"?`)) return;
+            if (!await showConfirm(`Hapus sanksi "${s.tingkat}"?`)) return;
             await API.deleteSanction(s.id);
             await loadAll();
             rerender();
@@ -1133,8 +1268,8 @@ function initAuthUI() {
       return;
     }
     API.register(regU.value, regP.value)
-      .then(() => {
-        alert("Pendaftaran berhasil, silakan masuk");
+      .then(async () => {
+        await showAlert("Pendaftaran berhasil, silakan masuk");
         regP.value = "";
         regC.value = "";
         showLogin();
@@ -1172,8 +1307,8 @@ function main() {
   if (session) {
     loadAll()
       .then(() => rerender())
-      .catch(() => {
-        alert("Server database belum jalan. Jalankan: cobaWeb/server -> npm install -> npm run dev");
+      .catch(async () => {
+        await showAlert("Server database belum jalan. Jalankan: cobaWeb/server -> npm install -> npm run dev");
         clearSession();
         setAuthVisible(false);
         refreshSessionBadge();
